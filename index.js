@@ -29,6 +29,13 @@ function rollDice() {
 
 function SelectDice(clicked_id) {
   let container = document.getElementsByClassName('dice_container')[0];
+  if(clicked_id <= 2) {
+    container.style.gridTemplateColumns = "repeat(" + clicked_id +",1fr)";
+  }
+  else{
+    container.style.gridTemplateColumns = "repeat(3, 1fr)";
+  }
+
   container.innerHTML = "";
   for (let i = 1; i <= clicked_id; i++) {
 
