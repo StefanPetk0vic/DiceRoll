@@ -1,0 +1,62 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0px;
+    font-size: clamp(14px, 1vw, 22px);
+    background-color: black;
+    font-family: Arial, sans-serif;
+    color: aliceblue;
+}
+
+h1,
+p {
+    margin: 5px;
+}
+
+button {
+    margin: 15px;
+    width: clamp(80px, 10vw, 130px);
+    height: clamp(35px, 5vh, 60px);
+    font-size: clamp(14px, 1.2vw, 18px);
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 15px;
+    font-size: 15px;
+    transition: 0.3s;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #000;
+    color: #fff;
+    border: 2px solid #ddd;
+}
+
+.error-404{
+    font-size: calc(3.5em + 90%);
+}
+
+.menu_btn{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    position: absolute;
+    top: 8px;
+    left: 16px;
+}
+
+
+@media (max-width: 768px) {
+    p,body{
+        margin: 0px;
+    }
+    button {
+        width: 90px;
+        height: 40px;
+        font-size: 14px;
+    }
+}

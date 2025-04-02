@@ -1,58 +1,148 @@
-function rollSingleDie() {
-  const x = Math.floor(Math.random() * 6) + 1;
-  console.log(x);
-  return x;
+import express from "express";
+import { Server } from "socket.io";
+import path from 'path';
+
+//For modules required
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = process.env.PORT || 3500;
+const ADMIN = "Admin";
+
+const app = express();
+app.use(express.static(path.join(__dirname, "public")));
+
+//Routing
+app.get('/solo', (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "solo.html"))
+});
+app.get('/versus', (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "versus.html"))
+});
+
+// Catch-all for undefined routes (404 handling)
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+});
+
+const expressServer = app.listen(PORT, () => {
+    console.log(`Server started: http://localhost:${PORT}`);
+});
+
+// A sudo makeshift DB that stores all active games on the site
+// the users is an arr with the values of name,id,diceNum,sum,roomID
+const UsersState = {
+    users: [],
+    setUsers: function (newUsersArray) {
+        this.users = newUsersArray
+    }
 }
-function numberToWord(result) {
-  return ["one", "two", "three", "four", "five", "six"][result - 1];
+
+const io = new Server(expressServer, {
+    //hosting the front-end on the different server we would need to put the address in cors
+    //with express we host the server on the backend (we don't have it separate)
+    //cross origins resource sharing
+    cors: {
+        origin: process.env.NODE_ENV === "production" ? false : ["http://localhost:5500", "http://127.0.0.1:5500"]
+    }
+})
+
+io.on('connection', socket => {
+
+    console.log(`User: ${socket.id} connected`);
+
+    //Upon connection - only to user
+    socket.emit('message', BuildMsg(ADMIN, "Welcome to Dice-Roll Versus mode !"));
+
+    socket.on('enterRoom', ({ name, room }) => {
+        // leave previous room
+        const prevRoom = GetUser(socket.id)?.room;
+
+        if (prevRoom) {
+            socket.leave(prevRoom);
+            io.to(prevRoom).emit('message', BuildMsg(ADMIN, `${name} has left the room`));
+        }
+
+        const user = activeUser(socket.id, name, room)
+
+        //Cannot update previous room users list until after the state update in activate user 
+        if (prevRoom) {
+            io.to(prevRoom).emit('userList', {
+                users: GetUsersInRoom(prevRoom)
+            })
+        }
+
+        //join room
+        if (room) {
+            socket.join(user.room);
+
+            //To everyone else in the room
+            socket.broadcast.to(user.room).emit('message', BuildMsg(ADMIN, `${user.name} has joined the room.`));
+
+            // Update user list for room
+            io.to(user.room).emit('userList', {
+                users: GetUsersInRoom(user.room)
+            });
+
+            io.emit('roomList', {
+                room: GetAllActiveRooms()
+            })
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const user = GetUser(socket.id);
+        userLeavesApp(socket.id);
+        if (user) {
+            io.to(user.room).emit('message', BuildMsg(ADMIN, `${user.name} has left the room.`));
+            io.to(user.room).emit('userList', {users: getUsersInRoom(user.room)});
+            io.to(user.room).emit('roomList',{rooms: GetAllActiveRooms()});
+
+        }
+        console.log(`User: ${socket.id} disconnected`);
+    });
+
+    //The 'message' that is being sent
+    //What im going to send is the name of the 
+    socket.on('message',({name,sum})=>{
+        const room = GetUser(socket.id)?.room;
+        if(room){
+            io.to(room).emit('message',BuildMsg(name,text));
+        }
+    });
+
+});
+
+function BuildMsg(name, sum) {
+    return {
+        name, sum
+    };
 }
 
-function rollDice() {
-  let container = document.getElementsByClassName('dice_container')[0];
-  let sum = 0;
+//User functions
+function activeUser(id, name, room, numDice, sum) {
+    const user = { id, name, room, numDice, sum };
+    UsersState.setUsers(
+        ...UsersState.users.filter(user => user.id !== id),
+        user
+    );
+    return user;
+};
 
+function userLeavesApp(id) {
+    UsersState.setUsers(
+        UsersState.users.filter(user => user.id !== id)
+    );
+};
 
-  for (let i = 1; i <= container.children.length; i++) {
-    const result = rollSingleDie();
-    sum += result;
-    let dieElement = document.getElementById("die" + i);
-    dieElement.innerHTML = `<i class="fa-solid fa-dice-${numberToWord(result)}" style="font-size: 3.5rem"></i> `;
+function GetUser(id) {
+    return UsersState.users.find(user => user.id === id);
+};
 
-    dieElement.classList.add("roll");
-
-    setTimeout(() => {
-      dieElement.classList.remove("roll");
-    }, 500);
-  }
-  document.getElementById("dice_sum").innerHTML = "Sum: " + sum;
-}
-
-function SelectDice(clicked_id) {
-  let container = document.getElementsByClassName('dice_container')[0];
-  if(clicked_id <= 2) {
-    container.style.gridTemplateColumns = "repeat(" + clicked_id +",1fr)";
-  }
-  else{
-    container.style.gridTemplateColumns = "repeat(3, 1fr)";
-  }
-
-  container.innerHTML = "";
-  for (let i = 1; i <= clicked_id; i++) {
-
-    //making the <div>
-    let iDiv = document.createElement('div');
-    iDiv.id = 'die' + i;
-    iDiv.className = 'dice';
-
-    //making the <i>
-    let iElement = document.createElement('i');
-    iElement.className = `fa-solid fa-dice-${numberToWord(rollSingleDie())}`;
-    iElement.style.fontSize = '3.5rem';
-
-    //append <i> to the <div>
-    iDiv.appendChild(iElement);
-
-    //append <div> to the container
-    document.getElementsByClassName('dice_container')[0].appendChild(iDiv);
-  }
+function GetUsersInRoom(room) {
+    return UsersState.users.filter(user => user.room === room);
+};
+function GetAllActiveRooms() {
+    return Array.from(new Set(UsersState.users.map(user => user.room)));
 }

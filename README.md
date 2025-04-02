@@ -1,0 +1,1 @@
+Solo and versus Jamb game modes for dice rolls

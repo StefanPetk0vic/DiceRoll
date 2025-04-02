@@ -1,0 +1,80 @@
+.dice_container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    place-items: center;
+    margin: 0px;
+}
+
+.dice {
+    display: flex;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    border: 1px solid black;
+    &.roll {
+        animation: roll 0.5s infinite;
+    }
+}
+
+.dice_shdw {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    margin: 10px;
+    border-radius: 35px;
+    box-shadow: 5px 10px 10px rgba(255, 255, 255, 0.5);
+}
+
+.select_container {
+    display: flex;
+    vertical-align: middle;
+}
+
+.amount {
+    
+    width: clamp(30px, 4vw, 30px);
+    height: clamp(40px, 6vh, 50px);
+    border-radius: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.amount:hover {
+    background-color: #000;
+    color: #fff;
+    border: 2px solid #ddd;
+    transition: 0.3s;
+}
+
+.flash{
+    background-color: #000;
+    color: #fff;
+    border: 2px solid #ddd;
+    transition: 0.3s;
+}
+
+
+
+@keyframes roll {
+    0% {
+        transform: rotate(0deg);
+    }
+    
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .amount{
+        margin: 5px;
+    }
+}
+
+
